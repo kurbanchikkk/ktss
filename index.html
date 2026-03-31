@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KurbanchikTeamsStudio</title>
+    
+    <!-- Твоя иконка-нота без фона -->
+    <link rel="icon" type="image/png" href="favicon.png">
+
+    <style>
+        @font-face {
+            font-family: 'CyberFont';
+            src: url('Cyberpunk_RUS_BY_LYAJKA.ttf');
+        }
+
+        body {
+            background: #050505;
+            background-image: 
+                linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 50px 50px;
+            background-attachment: fixed;
+            color: #fff;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 50px 20px;
+            overflow-x: hidden;
+            user-select: none;
+            cursor: none;
+        }
+
+
+        /* ГЛИТЧ-ДОЖДЬ */
+        #glitch-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; opacity: 0.3; pointer-events: none;
+        }
+
+        /* ФОНАРИК */
+        #cursor-glow {
+            position: fixed; top: 0; left: 0; width: 200px; height: 200px;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.15) 0%, transparent 70%);
+            border-radius: 50%; pointer-events: none; z-index: 999;
+            transform: translate(-50%, -50%); filter: blur(15px);
+            transition: background 0.3s, width 0.3s, height 0.3s;
+        }
+        body:active #cursor-glow { width: 300px; height: 300px; background: radial-gradient(circle, rgba(0, 255, 255, 0.4) 0%, transparent 70%); }
+        #cursor-glow.active { background: radial-gradient(circle, rgba(255, 0, 255, 0.3) 0%, transparent 70%); }
+
+        /* ПОЛОСКИ ПО БОКАМ */
+        body::before, body::after {
+            content: ""; position: fixed; top: 0; width: 5px; height: 100%; z-index: 10;
+        }
+        body::before { left: 0; background: #0ff; box-shadow: 0 0 20px #0ff; }
+        body::after { right: 0; background: #f0f; box-shadow: 0 0 20px #f0f; }
+
+        /* ЛОГОТИП */
+        .logo {
+            font-family: 'CyberFont', sans-serif;
+            font-size: clamp(1.5rem, 8vw, 3.5rem); 
+            text-transform: uppercase; text-align: center; margin-bottom: 60px;
+        }
+        .highlight { color: #fff; animation: kts-glow 2s infinite alternate; }
+        .extra { color: #fff; animation: neon-flow 4s infinite alternate; }
+        @keyframes neon-flow { 0% { text-shadow: 0 0 10px #0ff; } 100% { text-shadow: 0 0 10px #f0f; } }
+        @keyframes kts-glow { 0% { text-shadow: 0 0 15px #0ff, 0 0 30px #0ff; } 100% { text-shadow: 0 0 25px #f0f, 0 0 50px #f0f; } }
+
+        /* ПЛЕЙЛИСТ */
+        .playlist {
+            position: relative; z-index: 2; width: 100%; max-width: 550px;
+            background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(15px);
+            border-radius: 20px; padding: 30px; box-sizing: border-box;
+            border: 2px solid transparent; animation: border-glow 5s linear infinite;
+        }
+        @keyframes border-glow {
+            0%, 100% { border-color: #0ff; box-shadow: 0 0 15px rgba(0, 255, 255, 0.2); }
+            50% { border-color: #f0f; box-shadow: 0 0 15px rgba(255, 0, 255, 0.2); }
+        }
+
+        .track { border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 15px; margin-bottom: 25px; }
+        .track-name { font-family: 'CyberFont', sans-serif; font-size: 0.9rem; color: #0ff; text-shadow: 0 0 8px #0ff; margin-bottom: 12px; display: block; }
+        
+        /* ПЛЕЕР С ЗАЩИТОЙ */
+        audio { 
+            width: 100%; height: 35px; 
+            filter: invert(1) hue-rotate(180deg) brightness(1.4); 
+        }
+        /* Убираем кнопку скачивания в коде */
+        audio::-internal-media-controls-download-button { display:none; }
+        audio::-webkit-media-controls-enclosure { overflow:hidden; }
+
+        /* ПОДВАЛ */
+        footer {
+            margin-top: 50px; padding: 40px 0; width: 100%; max-width: 550px;
+            text-align: center; font-family: 'CyberFont', sans-serif;
+            border-top: 1px solid rgba(0, 255, 255, 0.1); position: relative; z-index: 2;
+        }
+        .copyright { font-size: 0.7rem; color: rgba(255, 255, 255, 0.4); letter-spacing: 2px; margin-bottom: 20px; text-transform: uppercase; line-height: 1.6; }
+        .social-links { display: flex; justify-content: center; gap: 20px; }
+        .social-link {
+            text-decoration: none; color: #0ff; font-size: 0.8rem; border: 1px solid #0ff;
+            padding: 8px 15px; border-radius: 5px; transition: 0.3s; text-transform: uppercase;
+        }
+        .social-link:hover { background: #0ff; color: #000; box-shadow: 0 0 20px #0ff; transform: translateY(-3px); }
+        .social-link.mail { color: #f0f; border-color: #f0f; }
+        .social-link.mail:hover { background: #f0f; color: #fff; box-shadow: 0 0 20px #f0f; }
+
+        /* ЭФФЕКТЫ ПРИ МУЗЫКЕ */
+        @keyframes grid-travel { from { background-position: 0 0; } to { background-position: 0 50px; } }
+        body.music-playing { animation: grid-travel 1.5s linear infinite; }
+        body.music-playing .playlist { animation: border-glow 1s linear infinite; }
+
+        @media (max-width: 768px) {
+            #cursor-glow, #glitch-canvas { display: none; }
+            body { cursor: auto; }
+            .hide-mobile { display: none; }
+            .logo { font-size: 6rem; letter-spacing: 15px; }
+        }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+    <canvas id="glitch-canvas"></canvas>
+    <div id="cursor-glow"></div>
+
+    <div class="logo">
+        <span class="highlight">K</span><span class="extra hide-mobile">urbanchik</span><span class="highlight">T</span><span class="extra hide-mobile">eams</span><span class="highlight">S</span><span class="extra hide-mobile">tudio</span>
+    </div>
+
+    <div class="playlist">
+        <!-- БЛОКИ ТРЕКОВ С ЗАЩИТОЙ -->
+        <div class="track"><span class="track-name">001</span><audio controls controlsList="nodownload" oncontextmenu="return false;" src="music/001.mp3"></audio></div>
+        <div class="track"><span class="track-name">A True CyberPunk</span><audio controls controlsList="nodownload" oncontextmenu="return false;" src="music/A True CyberPunk.mp3"></audio></div>
+        <div class="track"><span class="track-name">Fly</span><audio controls controlsList="nodownload" oncontextmenu="return false;" src="music/Fly.mp3"></audio></div>
+        <div class="track"><span class="track-name">ikavka</span><audio controls controlsList="nodownload" oncontextmenu="return false;" src="music/ikavka.mp3"></audio></div>
+        <div class="track"><span class="track-name">MASK</span><audio controls controlsList="nodownload" oncontextmenu="return false;" src="music/MASK.mp3"></audio></div>
+        <div class="track"><span class="track-name">SH-1 (Passed)</span><audio controls controlsList="nodownload" oncontextmenu="return false;" src="music/SH-1(Passed).mp3"></audio></div>
+        <div class="track"><span class="track-name">SH-OP</span><audio controls controlsList="nodownload" oncontextmenu="return false;" src="music/SH-OP.mp3"></audio></div>
+        <div class="track"><span class="track-name">TREMBLES</span><audio controls controlsList="nodownload" oncontextmenu="return false;" src="music/TREMBLES.mp3"></audio></div>
+        <div class="track"><span class="track-name">Underground</span><audio controls controlsList="nodownload" oncontextmenu="return false;" src="music/Underground.mp3"></audio></div>
+        <div class="track"><span class="track-name">ZENITH</span><audio controls controlsList="nodownload" oncontextmenu="return false;" src="music/ZENITH.mp3"></audio></div>
+    </div>
+
+    <footer>
+        <div class="copyright">&copy; 2023-2026 KurbanchikTeamsStudio<br>Все права защищены.</div>
+        <div class="social-links">
+            <!-- Теперь это не ссылка <a>, а блок <div>, поэтому браузер молчит -->
+            <div onclick="window.open('https://telegram.me/kurbanchikteamsstudio', '_blank')" class="social-link" style="cursor: pointer;">Telegram</div>
+            <div onclick="copyEmail()" class="social-link mail" style="cursor: pointer;">Email</div>
+        </div>
+    </footer>
+
+    <script>
+        // 1. ДОЖДЬ
+        const canvas = document.getElementById('glitch-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, columns;
+        const fontSize = 16;
+        const drops = [];
+        const chars = "01KTSX%&?#@$";
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            columns = Math.floor(width / fontSize);
+            for (let i = 0; i < columns; i++) drops[i] = 1;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function drawRain() {
+            ctx.fillStyle = "rgba(5, 5, 5, 0.1)";
+            ctx.fillRect(0, 0, width, height);
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars.charAt(Math.floor(Math.random() * chars.length));
+                ctx.fillStyle = i % 2 === 0 ? "#0ff" : "#f0f"; 
+                ctx.font = fontSize + "px monospace";
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                if (drops[i] * fontSize > height && Math.random() > 0.975) drops[i] = 0;
+                const speed = document.body.classList.contains('music-playing') ? 2 : 1;
+                drops[i] += speed;
+            }
+        }
+        setInterval(drawRain, 50);
+
+        // 2. МЫШКА
+        const glow = document.getElementById('cursor-glow');
+        document.addEventListener('mousemove', (e) => {
+            glow.style.left = e.clientX + 'px';
+            glow.style.top = e.clientY + 'px';
+        });
+
+        const interactives = document.querySelectorAll('.track, audio, .logo, .social-link');
+        interactives.forEach(el => {
+            el.addEventListener('mouseenter', () => glow.classList.add('active'));
+            el.addEventListener('mouseleave', () => glow.classList.remove('active'));
+        });
+
+        function copyEmail() {
+            const email = "kurbanchikteams@mail.ru";
+            navigator.clipboard.writeText(email);
+            alert("Почта скопирована в буфер: " + email);
+        }
+
+        // 3. МУЗЫКА
+        const players = document.querySelectorAll('audio');
+        players.forEach(player => {
+            player.addEventListener('play', () => {
+                players.forEach(p => { if (p !== player) p.pause(); });
+                document.body.classList.add('music-playing');
+            });
+            player.addEventListener('pause', () => document.body.classList.remove('music-playing'));
+            player.addEventListener('ended', () => document.body.classList.remove('music-playing'));
+        });
+
+        document.addEventListener('dragstart', (e) => e.preventDefault());
+
+
+</script>
+<!-- Этот скрипт делает запрос к базе и вызывает функцию cb выше -->
+<script async src="https://api.countapi.xyz"></script>
+
+        
+    </script>
+</body>
+</html>
